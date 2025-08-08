@@ -10,6 +10,8 @@ import {
   Query,
   ParseBoolPipe,
   ParseIntPipe,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,10 +20,16 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiQuery,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
 import { CardsService } from './cards.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Public } from '../auth/decorators/public.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '@prisma/client';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateCardDto } from './dto/create-card.dto';
 import { UpdateCardDto } from './dto/update-card.dto';
 import { CardResponseDto } from './dto/card-response.dto';
@@ -30,10 +38,14 @@ import { GetRandomCardsDto } from './dto/get-random-cards.dto';
 @ApiTags('Cards')
 @Controller('cards')
 export class CardsController {
-  constructor(private readonly cardsService: CardsService) {}
+  constructor(
+    private readonly cardsService: CardsService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
+  @Roles(Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new card (Admin only)' })
   @ApiResponse({
@@ -172,6 +184,7 @@ export class CardsController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
+  @Roles(Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update card (Admin only)' })
   @ApiParam({ name: 'id', description: 'Card ID' })
@@ -193,6 +206,7 @@ export class CardsController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
+  @Roles(Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete card (Admin only)' })
   @ApiParam({ name: 'id', description: 'Card ID' })
@@ -206,5 +220,51 @@ export class CardsController {
   })
   remove(@Param('id') id: string): Promise<void> {
     return this.cardsService.remove(id);
+  }
+
+  @Post(':id/upload-image')
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiOperation({ summary: 'Upload card image (Admin only)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        image: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiParam({ name: 'id', description: 'Card ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Image uploaded successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Card not found',
+  })
+  async uploadCardImage(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    // Upload image to Cloudinary
+    const result = await this.cloudinaryService.uploadImage(file, 'who-am-i/cards');
+    
+    // Update card with new image URL
+    const card = await this.cardsService.update(id, {
+      imageUrl: result.url,
+    });
+    
+    return {
+      success: true,
+      imageUrl: result.url,
+      card,
+    };
   }
 }

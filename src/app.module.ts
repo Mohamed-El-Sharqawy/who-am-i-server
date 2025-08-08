@@ -8,6 +8,8 @@ import { CardsModule } from './cards/cards.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { GameModule } from './game/game.module';
 import { AdminModule } from './admin/admin.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { UploadsModule } from './uploads/uploads.module';
 import { PrismaService } from './database/prisma.service';
 import { RedisService } from './cache/redis.service';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
@@ -34,6 +36,8 @@ import { AppService } from './app.service';
     RoomsModule,
     GameModule,
     AdminModule,
+    CloudinaryModule,
+    UploadsModule,
   ],
   controllers: [
     AppController
