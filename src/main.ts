@@ -10,7 +10,8 @@ async function bootstrap() {
 
 	// Enable CORS
 	app.enableCors({
-		origin: configService.get('cors.origin') || true,
+		// origin: configService.get('cors.origin') || true,
+		origin: true,
 		credentials: true,
 		methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
 		allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
@@ -44,11 +45,11 @@ async function bootstrap() {
 			},
 			'JWT-auth', // This name here is important for matching up with @ApiBearerAuth() in your controller!
 		)
-		.addTag('Authentication', 'User registration, login, and profile management')
-		.addTag('Categories', 'Game categories and genres management')
-		.addTag('Cards', 'Game cards with random retrieval functionality')
-		.addTag('Rooms', 'Game room creation and management for 2 players')
-		.addServer('http://localhost:3000', 'Development server')
+		// .addTag('Authentication', 'User registration, login, and profile management')
+		// .addTag('Categories', 'Game categories and genres management')
+		// .addTag('Cards', 'Game cards with random retrieval functionality')
+		// .addTag('Rooms', 'Game room creation and management for 2 players')
+		// .addServer('http://localhost:3000', 'Development server')
 		.build();
 
 	const document = SwaggerModule.createDocument(app, config);
