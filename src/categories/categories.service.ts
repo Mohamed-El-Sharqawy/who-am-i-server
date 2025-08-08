@@ -51,6 +51,8 @@ export class CategoriesService {
 
     return {
       ...category,
+      description: category.description || undefined,
+      imageUrl: category.imageUrl || undefined,
       cardCount: category._count.cards,
     };
   }
@@ -76,6 +78,8 @@ export class CategoriesService {
 
     const result = categories.map(category => ({
       ...category,
+      description: category.description || undefined,
+      imageUrl: category.imageUrl || undefined,
       cardCount: category._count.cards,
     }));
 
@@ -109,6 +113,8 @@ export class CategoriesService {
 
     const result = {
       ...category,
+      description: category.description || undefined,
+      imageUrl: category.imageUrl || undefined,
       cardCount: category._count.cards,
     };
 
@@ -153,6 +159,8 @@ export class CategoriesService {
 
     return {
       ...updatedCategory,
+      description: updatedCategory.description || undefined,
+      imageUrl: updatedCategory.imageUrl || undefined,
       cardCount: updatedCategory._count.cards,
     };
   }
@@ -197,7 +205,11 @@ export class CategoriesService {
     const cacheKey = `${this.CACHE_PREFIX}:stats:${id}`;
     
     // Try to get from cache first
-    const cachedStats = await this.redisService.getObject(cacheKey);
+    const cachedStats = await this.redisService.getObject<{
+      totalCards: number;
+      activeCards: number;
+      difficultyDistribution: Record<number, number>;
+    }>(cacheKey);
     if (cachedStats) {
       return cachedStats;
     }

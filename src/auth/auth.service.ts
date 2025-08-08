@@ -82,7 +82,10 @@ export class AuthService {
 
     return {
       access_token,
-      user,
+      user: {
+        ...user,
+        avatar: user.avatar || undefined,
+      },
     };
   }
 
@@ -127,7 +130,10 @@ export class AuthService {
 
     return {
       access_token,
-      user: userWithoutPassword,
+      user: {
+        ...userWithoutPassword,
+        avatar: userWithoutPassword.avatar || undefined,
+      },
     };
   }
 

@@ -56,7 +56,11 @@ export class CardsService {
     await this.redisService.invalidatePattern(`${this.CACHE_PREFIX}:*`);
     await this.redisService.invalidatePattern(`category:*`);
 
-    return card;
+    return {
+      ...card,
+      description: card.description || undefined,
+      imageUrl: card.imageUrl || undefined,
+    };
   }
 
   async findAll(
@@ -69,7 +73,7 @@ export class CardsService {
     const cacheKey = `${this.CACHE_PREFIX}:all:${categoryId || 'all'}:${includeInactive}:${page}:${limit}`;
     
     // Try to get from cache first
-    const cachedResult = await this.redisService.getObject(cacheKey);
+    const cachedResult = await this.redisService.getObject<{ cards: CardResponseDto[]; total: number; pages: number }>(cacheKey);
     if (cachedResult) {
       return cachedResult;
     }
@@ -98,7 +102,11 @@ export class CardsService {
     ]);
 
     const result = {
-      cards,
+      cards: cards.map(card => ({
+        ...card,
+        description: card.description || undefined,
+        imageUrl: card.imageUrl || undefined,
+      })),
       total,
       pages: Math.ceil(total / limit),
     };
@@ -113,9 +121,9 @@ export class CardsService {
     const cacheKey = `${this.CACHE_PREFIX}:${id}`;
     
     // Try to get from cache first
-    const cachedCard = await this.redisService.getObject<CardResponseDto>(cacheKey);
-    if (cachedCard) {
-      return cachedCard;
+    const cachedResult = await this.redisService.getObject<CardResponseDto>(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
     }
 
     const card = await this.prisma.card.findUnique({
@@ -134,10 +142,16 @@ export class CardsService {
       throw new NotFoundException('Card not found');
     }
 
-    // Cache the result
-    await this.redisService.setObject(cacheKey, card, this.CACHE_TTL);
+    const result = {
+      ...card,
+      description: card.description || undefined,
+      imageUrl: card.imageUrl || undefined,
+    };
 
-    return card;
+    // Cache the result
+    await this.redisService.setObject(cacheKey, result, this.CACHE_TTL);
+
+    return result;
   }
 
   async getRandomCards(params: GetRandomCardsDto): Promise<CardResponseDto[]> {
@@ -228,8 +242,12 @@ export class CardsService {
       uniqueCards.push(...additionalCards);
     }
 
-    // Shuffle the final result
-    const shuffledCards = this.shuffleArray(uniqueCards).slice(0, cardsToFetch);
+    // Shuffle the final result and fix types
+    const shuffledCards = this.shuffleArray(uniqueCards).slice(0, cardsToFetch).map(card => ({
+      ...card,
+      description: card.description || undefined,
+      imageUrl: card.imageUrl || undefined,
+    }));
 
     // Cache with shorter TTL for randomness
     await this.redisService.setObject(cacheKey, shuffledCards, 60 * 2); // 2 minutes
@@ -274,7 +292,11 @@ export class CardsService {
     await this.redisService.invalidatePattern(`${this.CACHE_PREFIX}:*`);
     await this.redisService.invalidatePattern(`category:*`);
 
-    return updatedCard;
+    return {
+      ...updatedCard,
+      description: updatedCard.description || undefined,
+      imageUrl: updatedCard.imageUrl || undefined,
+    };
   }
 
   async remove(id: string): Promise<void> {

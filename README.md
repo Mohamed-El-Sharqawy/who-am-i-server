@@ -1,98 +1,262 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Who Am I - Game API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A comprehensive NestJS backend API for the "Who Am I" guessing game with real-time multiplayer support.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- **Authentication System**: JWT-based authentication with registration and login
+- **Categories Management**: Organize cards by genres (actors, sports players, singers, etc.)
+- **Smart Card System**: Random card retrieval with difficulty levels and hints
+- **Room Management**: Create and join game rooms (2 players per room)
+- **Real-time Gameplay**: WebSocket-powered live game sessions
+- **Redis Caching**: High-performance caching for better user experience
+- **Comprehensive API Documentation**: Auto-generated Swagger documentation
+- **Database Management**: Prisma ORM with PostgreSQL (Neon) support
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tech Stack
 
-## Project setup
+- **Framework**: NestJS
+- **Database**: PostgreSQL (Neon)
+- **ORM**: Prisma
+- **Cache**: Redis (Upstash)
+- **Authentication**: JWT + Passport
+- **Real-time**: Socket.IO
+- **Documentation**: Swagger/OpenAPI
+- **Validation**: class-validator + class-transformer
+
+## Prerequisites
+
+- Node.js (v18 or higher)
+- npm or yarn
+- PostgreSQL database (Neon recommended)
+- Redis instance (Upstash recommended)
+
+## Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd who-am-i
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Environment Setup**
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Update the `.env` file with your configuration:
+   ```env
+   # Database
+   DATABASE_URL="your-neon-postgresql-connection-string"
+   
+   # JWT
+   JWT_SECRET="your-super-secret-jwt-key"
+   JWT_EXPIRES_IN="7d"
+   
+   # Redis
+   REDIS_URL="your-upstash-redis-connection-string"
+   
+   # App
+   PORT=3000
+   NODE_ENV="development"
+   CORS_ORIGIN="http://localhost:3000"
+   ```
+
+4. **Database Setup**
+   ```bash
+   # Generate Prisma client
+   npx prisma generate
+   
+   # Run database migrations
+   npx prisma db push
+   
+   # Seed the database with sample data
+   npx prisma db seed
+   ```
+
+## Running the Application
 
 ```bash
-$ npm install
+# Development mode
+npm run start:dev
+
+# Production mode
+npm run start:prod
+
+# Debug mode
+npm run start:debug
 ```
 
-## Compile and run the project
+The API will be available at:
+- **API**: http://localhost:3000
+- **Swagger Documentation**: http://localhost:3000/api/docs
+- **WebSocket**: ws://localhost:3000/game
+
+## API Documentation
+
+### Authentication Endpoints
+- `POST /auth/register` - Register a new user
+- `POST /auth/login` - Login user
+- `POST /auth/logout` - Logout user
+- `GET /auth/profile` - Get current user profile
+- `POST /auth/refresh` - Refresh JWT token
+
+### Categories Endpoints
+- `GET /categories` - Get all categories
+- `GET /categories/active` - Get active categories
+- `GET /categories/:id` - Get category by ID
+- `GET /categories/:id/stats` - Get category statistics
+- `POST /categories` - Create new category (Admin)
+- `PATCH /categories/:id` - Update category (Admin)
+- `DELETE /categories/:id` - Delete category (Admin)
+
+### Cards Endpoints
+- `GET /cards` - Get all cards (paginated)
+- `GET /cards/random` - **Get random cards for gameplay**
+- `GET /cards/category/:categoryId` - Get cards by category
+- `GET /cards/:id` - Get card by ID
+- `POST /cards` - Create new card (Admin)
+- `PATCH /cards/:id` - Update card (Admin)
+- `DELETE /cards/:id` - Delete card (Admin)
+
+### Rooms Endpoints
+- `GET /rooms` - Get all rooms (paginated)
+- `GET /rooms/available` - Get available rooms
+- `GET /rooms/my-rooms` - Get current user's rooms
+- `GET /rooms/:id` - Get room by ID
+- `POST /rooms` - Create new room
+- `POST /rooms/:id/join` - Join a room
+- `POST /rooms/:id/start` - Start game (creator only)
+- `DELETE /rooms/:id/leave` - Leave room
+
+### Health Endpoints
+- `GET /` - Health check
+- `GET /status` - API status and statistics
+
+## WebSocket Events
+
+### Client to Server
+- `joinRoom` - Join a game room
+- `leaveRoom` - Leave a game room
+- `startGame` - Start the game (room creator)
+- `makeGuess` - Make a guess for the current card
+- `requestHint` - Request a hint for the current card
+
+### Server to Client
+- `userJoined` - User joined the room
+- `userLeft` - User left the room
+- `gameStarted` - Game has started
+- `newRound` - New round started
+- `correctGuess` - Correct guess made
+- `incorrectGuess` - Incorrect guess made
+- `roundTimeout` - Round time expired
+- `gameEnded` - Game finished
+- `hintReceived` - Hint for current card
+- `error` - Error message
+
+## Game Flow
+
+1. **User Registration/Login**: Players create accounts or log in
+2. **Room Creation**: A player creates a game room with custom settings
+3. **Room Joining**: Another player joins the room (2 players max)
+4. **Game Start**: Room creator starts the game
+5. **Gameplay**: Players take turns guessing cards with hints and time limits
+6. **Scoring**: Points awarded for correct guesses
+7. **Game End**: Final scores and winner announcement
+
+## Key Features Implementation
+
+### Random Card Retrieval
+```typescript
+// Get 5 random cards from specific categories with difficulty filter
+GET /cards/random?count=5&categoryIds[]=category1&categoryIds[]=category2&minDifficulty=1&maxDifficulty=3
+```
+
+### Real-time Game Communication
+```typescript
+// WebSocket connection with JWT authentication
+const socket = io('/game', {
+  auth: {
+    token: 'your-jwt-token'
+  }
+});
+```
+
+### Caching Strategy
+- **Categories**: 15-minute cache
+- **Cards**: 10-minute cache
+- **Random Cards**: 2-minute cache (for variety)
+- **Rooms**: 5-minute cache
+- **User Sessions**: 7-day cache
+
+## Testing
 
 ```bash
-# development
-$ npm run start
+# Unit tests
+npm run test
 
-# watch mode
-$ npm run start:dev
+# E2E tests
+npm run test:e2e
 
-# production mode
-$ npm run start:prod
+# Test coverage
+npm run test:cov
 ```
 
-## Run tests
+## Database Schema
 
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
+### Core Models
+- **User**: Player accounts with scores and levels
+- **Category**: Game categories (actors, sports, etc.)
+- **Card**: Individual game cards with hints and difficulty
+- **Room**: Game rooms for 2 players
+- **Game**: Game sessions with rounds and results
+- **GameCard**: Cards used in specific games
+- **GameResult**: Player results and scores
 
 ## Deployment
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+### Environment Variables for Production
+```env
+NODE_ENV=production
+DATABASE_URL="your-production-database-url"
+REDIS_URL="your-production-redis-url"
+JWT_SECRET="your-production-jwt-secret"
+CORS_ORIGIN="your-frontend-domain"
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Docker Support
+```dockerfile
+# Dockerfile included for containerized deployment
+docker build -t who-am-i-api .
+docker run -p 3000:3000 who-am-i-api
+```
 
-## Resources
+## Contributing
 
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Built with [NestJS](https://nestjs.com/)
+- Database powered by [Prisma](https://prisma.io/)
+- Real-time communication via [Socket.IO](https://socket.io/)
+- Documentation with [Swagger](https://swagger.io/)
+
+---
+
+**Demo User**: `demo@whoami.com` / `demo123`
+
+For more information, visit the [API Documentation](http://localhost:3000/api/docs) when running locally.

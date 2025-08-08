@@ -88,7 +88,7 @@ export class RoomsService {
     const cacheKey = `${this.CACHE_PREFIX}:list:${status || 'all'}:${page}:${limit}`;
     
     // Try to get from cache first
-    const cachedResult = await this.redisService.getObject(cacheKey);
+    const cachedResult = await this.redisService.getObject<{ rooms: RoomResponseDto[]; total: number; pages: number }>(cacheKey);
     if (cachedResult) {
       return cachedResult;
     }
