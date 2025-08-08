@@ -45,6 +45,8 @@ export class CategoriesController {
   @UseGuards(JwtAuthGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Create a new category (Admin only)' })
   @ApiResponse({
     status: 201,
@@ -55,7 +57,32 @@ export class CategoriesController {
     status: 409,
     description: 'Category with this name already exists',
   })
-  create(@Body() createCategoryDto: CreateCategoryDto): Promise<CategoryResponseDto> {
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Actors & Actresses' },
+        description: { type: 'string', example: 'Famous actors and actresses from movies and TV shows' },
+        isActive: { type: 'boolean', example: true },
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Category image file',
+        },
+      },
+      required: ['name'],
+    },
+  })
+  async create(
+    @Body() createCategoryDto: CreateCategoryDto,
+    @UploadedFile() image?: Express.Multer.File,
+  ): Promise<CategoryResponseDto> {
+    // If image is provided, upload it to Cloudinary
+    if (image) {
+      const result = await this.cloudinaryService.uploadImage(image, 'who-am-i/categories');
+      createCategoryDto.imageUrl = result.url;
+    }
+    
     return this.categoriesService.create(createCategoryDto);
   }
 
@@ -128,6 +155,8 @@ export class CategoriesController {
   @UseGuards(JwtAuthGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Update category (Admin only)' })
   @ApiParam({ name: 'id', description: 'Category ID' })
   @ApiResponse({
@@ -143,10 +172,40 @@ export class CategoriesController {
     status: 409,
     description: 'Category name already exists',
   })
-  update(
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Actors & Actresses' },
+        description: { type: 'string', example: 'Famous actors and actresses from movies and TV shows' },
+        isActive: { type: 'boolean', example: true },
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Category image file',
+        },
+      },
+    },
+  })
+  async update(
     @Param('id') id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
+    @UploadedFile() image?: Express.Multer.File,
   ): Promise<CategoryResponseDto> {
+    // If image is provided, upload it to Cloudinary
+    if (image) {
+      // Get the current category to check if it has an existing image
+      const currentCategory = await this.categoriesService.findOne(id);
+      
+      // Upload the new image
+      const result = await this.cloudinaryService.uploadImage(image, 'who-am-i/categories');
+      updateCategoryDto.imageUrl = result.url;
+      
+      // TODO: Delete old image from Cloudinary if it exists
+      // This would require storing the public_id of the image in the database
+      // For now, we'll just update with the new image URL
+    }
+    
     return this.categoriesService.update(id, updateCategoryDto);
   }
 

@@ -47,6 +47,8 @@ export class CardsController {
   @UseGuards(JwtAuthGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Create a new card (Admin only)' })
   @ApiResponse({
     status: 201,
@@ -57,7 +59,39 @@ export class CardsController {
     status: 404,
     description: 'Category not found',
   })
-  create(@Body() createCardDto: CreateCardDto): Promise<CardResponseDto> {
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Brad Pitt' },
+        description: { type: 'string', example: 'American actor and film producer' },
+        categoryId: { type: 'string', example: 'clq1234567890' },
+        difficulty: { type: 'string', enum: ['EASY', 'MEDIUM', 'HARD'], example: 'MEDIUM' },
+        hints: { 
+          type: 'array', 
+          items: { type: 'string' },
+          example: ['Born in Oklahoma', 'Won an Oscar for Once Upon a Time in Hollywood']
+        },
+        isActive: { type: 'boolean', example: true },
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Card image file',
+        },
+      },
+      required: ['name', 'categoryId'],
+    },
+  })
+  async create(
+    @Body() createCardDto: CreateCardDto,
+    @UploadedFile() image?: Express.Multer.File,
+  ): Promise<CardResponseDto> {
+    // If image is provided, upload it to Cloudinary
+    if (image) {
+      const result = await this.cloudinaryService.uploadImage(image, 'who-am-i/cards');
+      createCardDto.imageUrl = result.url;
+    }
+    
     return this.cardsService.create(createCardDto);
   }
 
@@ -186,6 +220,8 @@ export class CardsController {
   @UseGuards(JwtAuthGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Update card (Admin only)' })
   @ApiParam({ name: 'id', description: 'Card ID' })
   @ApiResponse({
@@ -197,10 +233,47 @@ export class CardsController {
     status: 404,
     description: 'Card not found',
   })
-  update(
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Brad Pitt' },
+        description: { type: 'string', example: 'American actor and film producer' },
+        categoryId: { type: 'string', example: 'clq1234567890' },
+        difficulty: { type: 'string', enum: ['EASY', 'MEDIUM', 'HARD'], example: 'MEDIUM' },
+        hints: { 
+          type: 'array', 
+          items: { type: 'string' },
+          example: ['Born in Oklahoma', 'Won an Oscar for Once Upon a Time in Hollywood']
+        },
+        isActive: { type: 'boolean', example: true },
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Card image file',
+        },
+      },
+    },
+  })
+  async update(
     @Param('id') id: string,
     @Body() updateCardDto: UpdateCardDto,
+    @UploadedFile() image?: Express.Multer.File,
   ): Promise<CardResponseDto> {
+    // If image is provided, upload it to Cloudinary
+    if (image) {
+      // Get the current card to check if it has an existing image
+      const currentCard = await this.cardsService.findOne(id);
+      
+      // Upload the new image
+      const result = await this.cloudinaryService.uploadImage(image, 'who-am-i/cards');
+      updateCardDto.imageUrl = result.url;
+      
+      // TODO: Delete old image from Cloudinary if it exists
+      // This would require storing the public_id of the image in the database
+      // For now, we'll just update with the new image URL
+    }
+    
     return this.cardsService.update(id, updateCardDto);
   }
 
