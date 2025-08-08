@@ -21,6 +21,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
+import { Public } from './decorators/public.decorator';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -28,6 +29,7 @@ import { AuthResponseDto } from './dto/auth-response.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a new user' })
@@ -49,6 +51,7 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
 
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login user' })

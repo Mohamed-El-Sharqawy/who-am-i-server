@@ -12,6 +12,7 @@ import { RedisService } from '../cache/redis.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -52,6 +53,7 @@ export class AuthService {
         username,
         password: hashedPassword,
         avatar,
+        role: Role.USER, // Default role is USER
       },
       select: {
         id: true,
@@ -60,6 +62,7 @@ export class AuthService {
         avatar: true,
         score: true,
         level: true,
+        role: true,
         createdAt: true,
       },
     });
@@ -69,6 +72,7 @@ export class AuthService {
       sub: user.id,
       username: user.username,
       email: user.email,
+      role: user.role,
     };
 
     const access_token = this.jwtService.sign(payload);
@@ -76,7 +80,7 @@ export class AuthService {
     // Cache user session
     await this.redisService.setObject(
       `user_session:${user.id}`,
-      { userId: user.id, username: user.username },
+      { userId: user.id, username: user.username, role: user.role },
       60 * 60 * 24 * 7, // 7 days
     );
 
@@ -100,13 +104,13 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new BadRequestException('Invalid credentials');
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new BadRequestException('Invalid credentials');
     }
 
     // Generate JWT token
@@ -114,6 +118,7 @@ export class AuthService {
       sub: user.id,
       username: user.username,
       email: user.email,
+      role: user.role,
     };
 
     const access_token = this.jwtService.sign(payload);
@@ -121,7 +126,7 @@ export class AuthService {
     // Cache user session
     await this.redisService.setObject(
       `user_session:${user.id}`,
-      { userId: user.id, username: user.username },
+      { userId: user.id, username: user.username, role: user.role },
       60 * 60 * 24 * 7, // 7 days
     );
 
@@ -155,6 +160,7 @@ export class AuthService {
           avatar: true,
           score: true,
           level: true,
+          role: true,
           createdAt: true,
         },
       });
@@ -166,7 +172,7 @@ export class AuthService {
   async refreshToken(userId: string): Promise<string> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, username: true, email: true },
+      select: { id: true, username: true, email: true, role: true },
     });
 
     if (!user) {
@@ -177,6 +183,7 @@ export class AuthService {
       sub: user.id,
       username: user.username,
       email: user.email,
+      role: user.role,
     };
 
     return this.jwtService.sign(payload);

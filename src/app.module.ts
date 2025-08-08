@@ -7,9 +7,11 @@ import { CategoriesModule } from './categories/categories.module';
 import { CardsModule } from './cards/cards.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { GameModule } from './game/game.module';
+import { AdminModule } from './admin/admin.module';
 import { PrismaService } from './database/prisma.service';
 import { RedisService } from './cache/redis.service';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { RolesGuard } from './auth/guards/roles.guard';
 import configuration from './config/configuration';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -31,6 +33,7 @@ import { AppService } from './app.service';
     CardsModule,
     RoomsModule,
     GameModule,
+    AdminModule,
   ],
   controllers: [
     AppController
@@ -42,6 +45,10 @@ import { AppService } from './app.service';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })

@@ -20,6 +20,7 @@ model User {
   username  String   @unique
   password  String
   avatar    String?
+  role      Role     @default(USER)
   score     Int      @default(0)
   level     Int      @default(1)
   createdAt DateTime @default(now())
@@ -156,4 +157,9 @@ enum GameStatus {
   PAUSED
   FINISHED
   CANCELLED
+}
+
+enum Role {
+  USER
+  ADMIN
 }
