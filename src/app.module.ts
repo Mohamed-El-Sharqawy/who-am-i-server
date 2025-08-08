@@ -11,6 +11,8 @@ import { PrismaService } from './database/prisma.service';
 import { RedisService } from './cache/redis.service';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import configuration from './config/configuration';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -30,8 +32,11 @@ import configuration from './config/configuration';
     RoomsModule,
     GameModule,
   ],
-  controllers: [],
+  controllers: [
+    AppController
+  ],
   providers: [
+    AppService,
     PrismaService,
     RedisService,
     {
