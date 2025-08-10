@@ -14,6 +14,13 @@ model User {
   createdRooms Room[] @relation("RoomCreator")
   joinedRooms  Room[] @relation("RoomGuest")
   gameResults  GameResult[]
+  
+  // Friend relations
+  sentFriendRequests     Friend[] @relation("SentFriendRequests")
+  receivedFriendRequests Friend[] @relation("ReceivedFriendRequests")
+  
+  // Status tracking
+  presence UserPresence?
 
   @@map("users")
 }

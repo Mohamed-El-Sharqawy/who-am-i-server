@@ -16,3 +16,9 @@ enum Role {
   USER
   ADMIN
 }
+
+enum UserStatus {
+  ONLINE
+  OFFLINE
+  IN_GAME
+}

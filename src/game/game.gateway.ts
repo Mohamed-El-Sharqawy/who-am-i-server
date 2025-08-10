@@ -13,6 +13,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../database/prisma.service';
 import { RedisService } from '../cache/redis.service';
 import { CardsService } from '../cards/cards.service';
+import { FriendsService } from '../friends/friends.service';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -51,6 +52,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private prisma: PrismaService,
     private redisService: RedisService,
     private cardsService: CardsService,
+    private friendsService: FriendsService,
   ) {}
 
   async handleConnection(client: AuthenticatedSocket) {
@@ -100,7 +102,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       
       // Leave current room if any
       if (client.currentRoomId) {
-        await this.handleLeaveRoom(client, { roomId: client.currentRoomId });
+        await this.handleLeaveRoom(client);
       }
     }
   }
@@ -146,6 +148,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         userId: client.userId,
         username: client.username,
       });
+      
+      // Update user status to IN_GAME
+      if (client.userId) {
+        await this.friendsService.setUserInGame(client.userId);
+      }
 
       // Send current game state if exists
       const gameState = this.gameStates.get(roomId);
@@ -162,22 +169,26 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('leaveRoom')
-  async handleLeaveRoom(
-    @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { roomId: string },
-  ) {
-    const { roomId } = data;
-    
+  async handleLeaveRoom(@ConnectedSocket() client: AuthenticatedSocket) {
+    if (!client.userId) return;
+
+    const roomId = client.currentRoomId;
+    if (!roomId) return;
+
+    // Leave room
     client.leave(roomId);
-    if (client.currentRoomId === roomId) {
-      client.currentRoomId = undefined;
-    }
+    client.currentRoomId = undefined;
 
     // Notify room members
     this.server.to(roomId).emit('userLeft', {
       userId: client.userId,
       username: client.username,
     });
+    
+    // Update user status back to ONLINE
+    if (client.userId) {
+      await this.friendsService.setUserOnline(client.userId);
+    }
 
     client.emit('leftRoom', { roomId });
   }
