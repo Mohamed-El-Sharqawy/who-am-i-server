@@ -255,7 +255,7 @@ export class FriendsGateway implements OnGatewayConnection, OnGatewayDisconnect 
     try {
       const friends = await this.friendsService.getFriends(userId);
       
-      for (const friend of friends) {
+      for (const friend of friends.data) {
         const friendSocketId = this.userSockets.get(friend.id);
         if (friendSocketId) {
           this.server.to(friendSocketId).emit('friendStatusChanged', {
