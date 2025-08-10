@@ -1,3 +1,4 @@
+import { PaginationService } from './../common/services/pagination.service';
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -20,7 +21,7 @@ import { FriendsService } from '../friends/friends.service';
       inject: [ConfigService],
     }),
   ],
-  providers: [GameGateway, PrismaService, RedisService, CardsService, FriendsService],
+  providers: [GameGateway, PrismaService, RedisService, CardsService, FriendsService, PaginationService],
   exports: [GameGateway],
 })
 export class GameModule {}
