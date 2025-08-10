@@ -39,11 +39,11 @@ async function bootstrap() {
 				type: 'http',
 				scheme: 'bearer',
 				bearerFormat: 'JWT',
-				name: 'JWT',
+				name: 'Authorization',
 				description: 'Enter JWT token',
 				in: 'header',
 			},
-			'JWT-auth', // This name here is important for matching up with @ApiBearerAuth() in your controller!
+			'access-token' // This name here is important for matching up with @ApiBearerAuth() in your controller!
 		)
 		// .addTag('Authentication', 'User registration, login, and profile management')
 		// .addTag('Categories', 'Game categories and genres management')
