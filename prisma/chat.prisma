@@ -1,0 +1,54 @@
+// Chat models for text and voice communication
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  content   String
+  type      MessageType
+  roomId    String
+  senderId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  room   Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([senderId])
+}
+
+model VoiceSession {
+  id        String   @id @default(cuid())
+  roomId    String
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+  active    Boolean  @default(true)
+
+  // Relations
+  room         Room           @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  participants VoiceParticipant[]
+
+  @@index([roomId])
+}
+
+model VoiceParticipant {
+  id            String   @id @default(cuid())
+  voiceSessionId String
+  userId        String
+  joinedAt      DateTime @default(now())
+  leftAt        DateTime?
+  muted         Boolean  @default(false)
+  
+  // Relations
+  voiceSession VoiceSession @relation(fields: [voiceSessionId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([voiceSessionId])
+  @@index([userId])
+}
+
+enum MessageType {
+  TEXT
+  SYSTEM
+  GAME_ACTION
+}

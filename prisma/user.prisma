@@ -7,6 +7,8 @@ model User {
   role      Role     @default(USER)
   score     Int      @default(0)
   level     Int      @default(1)
+  wins      Int      @default(0)
+  losses    Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -18,6 +20,10 @@ model User {
   // Friend relations
   sentFriendRequests     Friend[] @relation("SentFriendRequests")
   receivedFriendRequests Friend[] @relation("ReceivedFriendRequests")
+  
+  // Chat relations
+  sentMessages ChatMessage[]
+  voiceParticipations VoiceParticipant[]
   
   // Status tracking
   presence UserPresence?

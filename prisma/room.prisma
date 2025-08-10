@@ -14,7 +14,12 @@ model Room {
   guestId   String?
   guest     User?  @relation("RoomGuest", fields: [guestId], references: [id])
 
+  // Game relations
   games Game[]
+  
+  // Chat relations
+  chatMessages   ChatMessage[]
+  voiceSessions  VoiceSession[]
 
   @@map("rooms")
 }

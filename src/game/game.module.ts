@@ -5,6 +5,7 @@ import { GameGateway } from './game.gateway';
 import { PrismaService } from '../database/prisma.service';
 import { RedisService } from '../cache/redis.service';
 import { CardsService } from '../cards/cards.service';
+import { FriendsService } from '../friends/friends.service';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { CardsService } from '../cards/cards.service';
       inject: [ConfigService],
     }),
   ],
-  providers: [GameGateway, PrismaService, RedisService, CardsService],
+  providers: [GameGateway, PrismaService, RedisService, CardsService, FriendsService],
   exports: [GameGateway],
 })
 export class GameModule {}
