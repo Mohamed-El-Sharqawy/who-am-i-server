@@ -1,0 +1,19 @@
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String   @unique
+  password  String
+  avatar    String?
+  role      Role     @default(USER)
+  score     Int      @default(0)
+  level     Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  createdRooms Room[] @relation("RoomCreator")
+  joinedRooms  Room[] @relation("RoomGuest")
+  gameResults  GameResult[]
+
+  @@map("users")
+}

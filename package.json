@@ -26,7 +26,8 @@
     "db:reset": "prisma migrate reset"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "ts-node prisma/seed.ts",
+    "schema": "./prisma"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

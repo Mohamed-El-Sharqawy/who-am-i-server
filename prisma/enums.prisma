@@ -1,0 +1,18 @@
+enum RoomStatus {
+  WAITING
+  PLAYING
+  FINISHED
+}
+
+enum GameStatus {
+  PREPARING
+  IN_PROGRESS
+  PAUSED
+  FINISHED
+  CANCELLED
+}
+
+enum Role {
+  USER
+  ADMIN
+}

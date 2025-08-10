@@ -1,0 +1,55 @@
+model Game {
+  id          String     @id @default(cuid())
+  status      GameStatus @default(PREPARING)
+  currentRound Int       @default(1)
+  maxRounds   Int        @default(5)
+  timePerRound Int       @default(60) // seconds
+  startedAt   DateTime?
+  endedAt     DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  roomId String
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  gameCards   GameCard[]
+  gameResults GameResult[]
+
+  @@map("games")
+}
+
+model GameCard {
+  id        String   @id @default(cuid())
+  round     Int
+  isGuessed Boolean  @default(false)
+  guessedBy String? // User ID who guessed correctly
+  createdAt DateTime @default(now())
+
+  // Relations
+  gameId String
+  game   Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  cardId String
+  card   Card   @relation(fields: [cardId], references: [id])
+
+  @@unique([gameId, round])
+  @@map("game_cards")
+}
+
+model GameResult {
+  id          String   @id @default(cuid())
+  score       Int      @default(0)
+  correctGuesses Int   @default(0)
+  totalRounds Int      @default(0)
+  position    Int? // 1st, 2nd place
+  createdAt   DateTime @default(now())
+
+  // Relations
+  gameId String
+  game   Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([gameId, userId])
+  @@map("game_results")
+}

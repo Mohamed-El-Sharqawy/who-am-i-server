@@ -1,0 +1,20 @@
+model Room {
+  id          String     @id @default(cuid())
+  name        String
+  isActive    Boolean    @default(true)
+  maxPlayers  Int        @default(2)
+  status      RoomStatus @default(WAITING)
+  settings    Json? // Game settings like rounds, time per round, etc.
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  creatorId String
+  creator   User   @relation("RoomCreator", fields: [creatorId], references: [id])
+  guestId   String?
+  guest     User?  @relation("RoomGuest", fields: [guestId], references: [id])
+
+  games Game[]
+
+  @@map("rooms")
+}
