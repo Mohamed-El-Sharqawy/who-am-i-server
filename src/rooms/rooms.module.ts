@@ -3,8 +3,10 @@ import { RoomsService } from './rooms.service';
 import { RoomsController } from './rooms.controller';
 import { PrismaService } from '../database/prisma.service';
 import { RedisService } from '../cache/redis.service';
+import { CommonModule } from '../common/common.module';
 
 @Module({
+  imports: [CommonModule],
   controllers: [RoomsController],
   providers: [RoomsService, PrismaService, RedisService],
   exports: [RoomsService],

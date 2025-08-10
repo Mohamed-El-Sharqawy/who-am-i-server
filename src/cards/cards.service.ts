@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { RedisService } from '../cache/redis.service';
+import { PaginationService } from '../common/services/pagination.service';
+import { PaginatedResult } from '../common/interfaces/pagination.interface';
 import { CreateCardDto } from './dto/create-card.dto';
 import { UpdateCardDto } from './dto/update-card.dto';
 import { CardResponseDto } from './dto/card-response.dto';
@@ -18,6 +20,7 @@ export class CardsService {
   constructor(
     private prisma: PrismaService,
     private redisService: RedisService,
+    private paginationService: PaginationService,
   ) {}
 
   async create(createCardDto: CreateCardDto): Promise<CardResponseDto> {
@@ -68,12 +71,12 @@ export class CardsService {
     includeInactive = false,
     page = 1,
     limit = 20,
-  ): Promise<{ cards: CardResponseDto[]; total: number; pages: number }> {
+  ): Promise<PaginatedResult<CardResponseDto>> {
     const skip = (page - 1) * limit;
     const cacheKey = `${this.CACHE_PREFIX}:all:${categoryId || 'all'}:${includeInactive}:${page}:${limit}`;
     
     // Try to get from cache first
-    const cachedResult = await this.redisService.getObject<{ cards: CardResponseDto[]; total: number; pages: number }>(cacheKey);
+    const cachedResult = await this.redisService.getObject<PaginatedResult<CardResponseDto>>(cacheKey);
     if (cachedResult) {
       return cachedResult;
     }
@@ -83,7 +86,7 @@ export class CardsService {
       ...(includeInactive ? {} : { isActive: true }),
     };
 
-    const [cards, total] = await Promise.all([
+    const [cards, totalCount] = await Promise.all([
       this.prisma.card.findMany({
         where,
         include: {
@@ -101,15 +104,14 @@ export class CardsService {
       this.prisma.card.count({ where }),
     ]);
 
-    const result = {
-      cards: cards.map(card => ({
-        ...card,
-        description: card.description || undefined,
-        imageUrl: card.imageUrl || undefined,
-      })),
-      total,
-      pages: Math.ceil(total / limit),
-    };
+    const items = cards.map(card => ({
+      ...card,
+      description: card.description || undefined,
+      imageUrl: card.imageUrl || undefined,
+    }));
+
+    // Create paginated result using the pagination service
+    const result = this.paginationService.paginate<CardResponseDto>(items, totalCount, page, limit);
 
     // Cache the result
     await this.redisService.setObject(cacheKey, result, this.CACHE_TTL);
@@ -317,9 +319,13 @@ export class CardsService {
     await this.redisService.invalidatePattern(`category:*`);
   }
 
-  async getCardsByCategory(categoryId: string, includeInactive = false): Promise<CardResponseDto[]> {
-    const result = await this.findAll(categoryId, includeInactive, 1, 1000);
-    return result.cards;
+  async getCardsByCategory(
+    categoryId: string, 
+    includeInactive = false,
+    page = 1,
+    limit = 20,
+  ): Promise<PaginatedResult<CardResponseDto>> {
+    return this.findAll(categoryId, includeInactive, page, limit);
   }
 
   private generateRandomOffsets(count: number, total: number): number[] {

@@ -10,6 +10,7 @@ import { GameModule } from './game/game.module';
 import { AdminModule } from './admin/admin.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { CommonModule } from './common/common.module';
 import { PrismaService } from './database/prisma.service';
 import { RedisService } from './cache/redis.service';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
@@ -30,6 +31,7 @@ import { AppService } from './app.service';
         limit: 100, // 100 requests per minute
       },
     ]),
+    CommonModule,
     AuthModule,
     CategoriesModule,
     CardsModule,

@@ -25,6 +25,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { JoinRoomDto } from './dto/join-room.dto';
 import { RoomResponseDto } from './dto/room-response.dto';
+import { PaginatedResult } from '../common/interfaces/pagination.interface';
 
 @ApiTags('Rooms')
 @Controller('rooms')
@@ -82,27 +83,56 @@ export class RoomsController {
 
   @Get('available')
   @Public()
-  @ApiOperation({ summary: 'Get available rooms (waiting for players)' })
+  @ApiOperation({ summary: 'Get available rooms (waiting for players) with pagination' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10)',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Available rooms retrieved successfully',
-    type: [RoomResponseDto],
+    description: 'Available rooms retrieved successfully with pagination metadata',
   })
-  getAvailableRooms(): Promise<RoomResponseDto[]> {
-    return this.roomsService.getAvailableRooms();
+  getAvailableRooms(
+    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+  ): Promise<PaginatedResult<RoomResponseDto>> {
+    return this.roomsService.getAvailableRooms(page ? +page : 1, limit ? +limit : 10);
   }
 
   @Get('my-rooms')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current user rooms' })
+  @ApiOperation({ summary: 'Get current user rooms with pagination' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10)',
+  })
   @ApiResponse({
     status: 200,
-    description: 'User rooms retrieved successfully',
-    type: [RoomResponseDto],
+    description: 'User rooms retrieved successfully with pagination metadata',
   })
-  getUserRooms(@Request() req): Promise<RoomResponseDto[]> {
-    return this.roomsService.getUserRooms(req.user.id);
+  getUserRooms(
+    @Request() req,
+    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+  ): Promise<PaginatedResult<RoomResponseDto>> {
+    return this.roomsService.getUserRooms(req.user.id, page ? +page : 1, limit ? +limit : 10);
   }
 
   @Get(':id')

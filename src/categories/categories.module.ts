@@ -4,9 +4,10 @@ import { CategoriesController } from './categories.controller';
 import { PrismaService } from '../database/prisma.service';
 import { RedisService } from '../cache/redis.service';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
+import { CommonModule } from '../common/common.module';
 
 @Module({
-  imports: [CloudinaryModule],
+  imports: [CloudinaryModule, CommonModule],
   controllers: [CategoriesController],
   providers: [CategoriesService, PrismaService, RedisService],
   exports: [CategoriesService],

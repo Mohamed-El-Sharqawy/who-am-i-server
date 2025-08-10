@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException, ConflictException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { RedisService } from '../cache/redis.service';
+import { PaginationService } from '../common/services/pagination.service';
+import { PaginatedResult } from '../common/interfaces/pagination.interface';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class FriendsService {
@@ -8,6 +11,7 @@ export class FriendsService {
   constructor(
     private prisma: PrismaService,
     private redisService: RedisService,
+    private paginationService: PaginationService,
   ) {}
 
   /**
@@ -241,16 +245,26 @@ export class FriendsService {
   }
 
   /**
-   * Get all friends of a user
+   * Get all friends of a user with pagination
    */
-  async getFriends(userId: string) {
-    const friends = await this.prisma.friend.findMany({
+  async getFriends(userId: string, page = 1, limit = 10): Promise<PaginatedResult<any>> {
+    // First, get total count for pagination
+    const totalCount = await this.prisma.friend.count({
       where: {
         OR: [
-          { senderId: userId },
-          { receiverId: userId },
+          { senderId: userId, status: 'ACCEPTED' },
+          { receiverId: userId, status: 'ACCEPTED' },
         ],
-        status: 'ACCEPTED',
+      },
+    });
+    
+    // Then get paginated results
+    const friendships = await this.prisma.friend.findMany({
+      where: {
+        OR: [
+          { senderId: userId, status: 'ACCEPTED' },
+          { receiverId: userId, status: 'ACCEPTED' },
+        ],
       },
       include: {
         sender: {
@@ -268,29 +282,47 @@ export class FriendsService {
           },
         },
       },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    // Transform the data to return a clean list of friends
-    return friends.map(friendship => {
-      const friend = friendship.senderId === userId 
-        ? friendship.receiver 
-        : friendship.sender;
+    // Map to a list of friend users
+    const friends = friendships.map(friendship => {
+      const isSender = friendship.senderId === userId;
+      const friend = isSender ? friendship.receiver : friendship.sender;
       
-      // Get online status from Redis
-      const onlineStatus = this.redisService.getObject(`user_presence:${friend.id}`);
-      
-      return {
-        ...friend,
-        friendshipId: friendship.id,
-        status: onlineStatus || { status: 'OFFLINE' },
-      };
+      return friend;
     });
+
+    // Fetch online status for each friend
+    const friendsWithStatus = await Promise.all(
+      friends.map(async friend => {
+        const presence = await this.redisService.getObject(`user_presence:${friend.id}`) as { status?: string; lastSeen?: Date } | null;
+        return {
+          ...friend,
+          status: presence?.status || 'OFFLINE',
+          lastSeen: presence?.lastSeen || null,
+        };
+      })
+    );
+
+    // Return paginated result
+    return this.paginationService.paginate(friendsWithStatus, totalCount, page, limit);
   }
 
   /**
-   * Get pending friend requests for a user
+   * Get pending friend requests for a user with pagination
    */
-  async getPendingRequests(userId: string) {
+  async getPendingRequests(userId: string, page = 1, limit = 10): Promise<PaginatedResult<any>> {
+    // First, get total count for pagination
+    const totalCount = await this.prisma.friend.count({
+      where: {
+        receiverId: userId,
+        status: 'PENDING',
+      },
+    });
+    
+    // Then get paginated results
     const pendingRequests = await this.prisma.friend.findMany({
       where: {
         receiverId: userId,
@@ -305,15 +337,27 @@ export class FriendsService {
           },
         },
       },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    return pendingRequests;
+    // Return paginated result
+    return this.paginationService.paginate(pendingRequests, totalCount, page, limit);
   }
 
   /**
-   * Get blocked users
+   * Get blocked users with pagination
    */
-  async getBlockedUsers(userId: string) {
+  async getBlockedUsers(userId: string, page = 1, limit = 10): Promise<PaginatedResult<any>> {
+    // First, get total count for pagination
+    const totalCount = await this.prisma.friend.count({
+      where: {
+        senderId: userId,
+        status: 'BLOCKED',
+      },
+    });
+    
+    // Then get paginated results
     const blockedUsers = await this.prisma.friend.findMany({
       where: {
         senderId: userId,
@@ -328,9 +372,14 @@ export class FriendsService {
           },
         },
       },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    return blockedUsers.map(block => block.receiver);
+    const items = blockedUsers.map(block => block.receiver);
+    
+    // Return paginated result
+    return this.paginationService.paginate(items, totalCount, page, limit);
   }
 
   /**
@@ -406,7 +455,9 @@ export class FriendsService {
    */
   private async notifyFriendsAboutStatusChange(userId: string, status: 'ONLINE' | 'OFFLINE' | 'IN_GAME') {
     try {
-      const friends = await this.getFriends(userId);
+      // Get all friends without pagination to notify everyone
+      const friendsResult = await this.getFriends(userId);
+      const friends = friendsResult.data;
       
       // For each friend, check if they have an active socket connection
       for (const friend of friends) {

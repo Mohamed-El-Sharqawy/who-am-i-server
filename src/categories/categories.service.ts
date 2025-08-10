@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { RedisService } from '../cache/redis.service';
+import { PaginationService } from '../common/services/pagination.service';
+import { PaginatedResult } from '../common/interfaces/pagination.interface';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryResponseDto } from './dto/category-response.dto';
@@ -18,6 +20,7 @@ export class CategoriesService {
   constructor(
     private prisma: PrismaService,
     private redisService: RedisService,
+    private paginationService: PaginationService,
   ) {}
 
   async create(createCategoryDto: CreateCategoryDto): Promise<CategoryResponseDto> {
@@ -57,15 +60,25 @@ export class CategoriesService {
     };
   }
 
-  async findAll(includeInactive = false): Promise<CategoryResponseDto[]> {
-    const cacheKey = `${this.CACHE_PREFIX}:all:${includeInactive}`;
+  async findAll(
+    includeInactive = false,
+    page = 1,
+    limit = 10,
+  ): Promise<PaginatedResult<CategoryResponseDto>> {
+    const cacheKey = `${this.CACHE_PREFIX}:all:${includeInactive}:page${page}:limit${limit}`;
     
     // Try to get from cache first
-    const cachedCategories = await this.redisService.getObject<CategoryResponseDto[]>(cacheKey);
-    if (cachedCategories) {
-      return cachedCategories;
+    const cachedResult = await this.redisService.getObject<PaginatedResult<CategoryResponseDto>>(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
     }
 
+    // Get total count for pagination
+    const totalCount = await this.prisma.category.count({
+      where: includeInactive ? {} : { isActive: true },
+    });
+
+    // Get paginated categories
     const categories = await this.prisma.category.findMany({
       where: includeInactive ? {} : { isActive: true },
       include: {
@@ -74,14 +87,19 @@ export class CategoriesService {
         },
       },
       orderBy: { name: 'asc' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    const result = categories.map(category => ({
+    const items = categories.map(category => ({
       ...category,
       description: category.description || undefined,
       imageUrl: category.imageUrl || undefined,
       cardCount: category._count.cards,
     }));
+
+    // Create paginated result
+    const result = this.paginationService.paginate<CategoryResponseDto>(items, totalCount, page, limit);
 
     // Cache the result
     await this.redisService.setObject(cacheKey, result, this.CACHE_TTL);
@@ -193,8 +211,8 @@ export class CategoriesService {
     await this.redisService.invalidatePattern(`${this.CACHE_PREFIX}:*`);
   }
 
-  async getActiveCategories(): Promise<CategoryResponseDto[]> {
-    return this.findAll(false);
+  async getActiveCategories(page = 1, limit = 10): Promise<PaginatedResult<CategoryResponseDto>> {
+    return this.findAll(false, page, limit);
   }
 
   async getCategoryStats(id: string): Promise<{

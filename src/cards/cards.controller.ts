@@ -34,6 +34,8 @@ import { CreateCardDto } from './dto/create-card.dto';
 import { UpdateCardDto } from './dto/update-card.dto';
 import { CardResponseDto } from './dto/card-response.dto';
 import { GetRandomCardsDto } from './dto/get-random-cards.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { PaginatedResult } from '../common/interfaces/pagination.interface';
 
 @ApiTags('Cards')
 @Controller('cards')
@@ -124,13 +126,32 @@ export class CardsController {
   @ApiResponse({
     status: 200,
     description: 'Cards retrieved successfully',
+    schema: {
+      properties: {
+        data: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/CardResponseDto' },
+        },
+        meta: {
+          type: 'object',
+          properties: {
+            currentPage: { type: 'number' },
+            pagesCount: { type: 'number' },
+            totalCount: { type: 'number' },
+            limit: { type: 'number' },
+            hasNext: { type: 'boolean' },
+            hasPrev: { type: 'boolean' },
+          },
+        },
+      },
+    },
   })
   findAll(
     @Query('categoryId') categoryId?: string,
     @Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean,
-    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
-  ) {
+    @Query() paginationDto?: PaginationDto,
+  ): Promise<PaginatedResult<CardResponseDto>> {
+    const { page = 1, limit = 20 } = paginationDto || {};
     return this.cardsService.findAll(categoryId, includeInactive, page, limit);
   }
 
@@ -179,7 +200,7 @@ export class CardsController {
 
   @Get('category/:categoryId')
   @Public()
-  @ApiOperation({ summary: 'Get all cards in a specific category' })
+  @ApiOperation({ summary: 'Get cards by category' })
   @ApiParam({ name: 'categoryId', description: 'Category ID' })
   @ApiQuery({
     name: 'includeInactive',
@@ -187,16 +208,52 @@ export class CardsController {
     type: Boolean,
     description: 'Include inactive cards',
   })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 20)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Cards retrieved successfully',
-    type: [CardResponseDto],
+    schema: {
+      properties: {
+        data: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/CardResponseDto' },
+        },
+        meta: {
+          type: 'object',
+          properties: {
+            currentPage: { type: 'number' },
+            pagesCount: { type: 'number' },
+            totalCount: { type: 'number' },
+            limit: { type: 'number' },
+            hasNext: { type: 'boolean' },
+            hasPrev: { type: 'boolean' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Category not found',
   })
   getCardsByCategory(
     @Param('categoryId') categoryId: string,
     @Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean,
-  ): Promise<CardResponseDto[]> {
-    return this.cardsService.getCardsByCategory(categoryId, includeInactive);
+    @Query() paginationDto?: PaginationDto,
+  ): Promise<PaginatedResult<CardResponseDto>> {
+    const { page = 1, limit = 20 } = paginationDto || {};
+    return this.cardsService.getCardsByCategory(categoryId, includeInactive, page, limit);
   }
 
   @Get(':id')

@@ -32,6 +32,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '@prisma/client';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { PaginatedResult } from '../common/interfaces/pagination.interface';
 
 @ApiTags('Categories')
 @Controller('categories')
@@ -95,27 +97,92 @@ export class CategoriesController {
     type: Boolean,
     description: 'Include inactive categories',
   })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (1-based)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page',
+  })
   @ApiResponse({
     status: 200,
     description: 'Categories retrieved successfully',
-    type: [CategoryResponseDto],
+    schema: {
+      properties: {
+        data: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/CategoryResponseDto' },
+        },
+        meta: {
+          type: 'object',
+          properties: {
+            currentPage: { type: 'number' },
+            pagesCount: { type: 'number' },
+            totalCount: { type: 'number' },
+            limit: { type: 'number' },
+            hasNext: { type: 'boolean' },
+            hasPrev: { type: 'boolean' },
+          },
+        },
+      },
+    },
   })
   findAll(
     @Query('includeInactive', new ParseBoolPipe({ optional: true })) includeInactive?: boolean,
-  ): Promise<CategoryResponseDto[]> {
-    return this.categoriesService.findAll(includeInactive);
+    @Query() paginationDto?: PaginationDto,
+  ): Promise<PaginatedResult<CategoryResponseDto>> {
+    const { page = 1, limit = 10 } = paginationDto || {};
+    return this.categoriesService.findAll(includeInactive, page, limit);
   }
 
   @Get('active')
   @Public()
   @ApiOperation({ summary: 'Get all active categories' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (1-based)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page',
+  })
   @ApiResponse({
     status: 200,
     description: 'Active categories retrieved successfully',
-    type: [CategoryResponseDto],
+    schema: {
+      properties: {
+        data: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/CategoryResponseDto' },
+        },
+        meta: {
+          type: 'object',
+          properties: {
+            currentPage: { type: 'number' },
+            pagesCount: { type: 'number' },
+            totalCount: { type: 'number' },
+            limit: { type: 'number' },
+            hasNext: { type: 'boolean' },
+            hasPrev: { type: 'boolean' },
+          },
+        },
+      },
+    },
   })
-  getActiveCategories(): Promise<CategoryResponseDto[]> {
-    return this.categoriesService.getActiveCategories();
+  getActiveCategories(
+    @Query() paginationDto?: PaginationDto,
+  ): Promise<PaginatedResult<CategoryResponseDto>> {
+    const { page = 1, limit = 10 } = paginationDto || {};
+    return this.categoriesService.getActiveCategories(page, limit);
   }
 
   @Get(':id')

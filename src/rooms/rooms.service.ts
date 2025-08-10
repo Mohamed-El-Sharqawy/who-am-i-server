@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { RedisService } from '../cache/redis.service';
+import { PaginationService } from '../common/services/pagination.service';
+import { PaginatedResult } from '../common/interfaces/pagination.interface';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { RoomResponseDto } from './dto/room-response.dto';
 
@@ -18,6 +20,7 @@ export class RoomsService {
   constructor(
     private prisma: PrismaService,
     private redisService: RedisService,
+    private paginationService: PaginationService,
   ) {}
 
   async create(createRoomDto: CreateRoomDto, creatorId: string): Promise<RoomResponseDto> {
@@ -370,20 +373,61 @@ export class RoomsService {
     return roomResponse;
   }
 
-  async getAvailableRooms(): Promise<RoomResponseDto[]> {
-    const result = await this.findAll('WAITING');
-    return result.rooms.filter(room => room.playerCount < room.maxPlayers);
-  }
-
-  async getUserRooms(userId: string): Promise<RoomResponseDto[]> {
-    const cacheKey = `${this.CACHE_PREFIX}:user:${userId}`;
+  async getAvailableRooms(page = 1, limit = 10): Promise<PaginatedResult<RoomResponseDto>> {
+    const cacheKey = `${this.CACHE_PREFIX}:available:${page}:${limit}`;
     
     // Try to get from cache first
-    const cachedRooms = await this.redisService.getObject<RoomResponseDto[]>(cacheKey);
-    if (cachedRooms) {
-      return cachedRooms;
+    const cachedResult = await this.redisService.getObject<PaginatedResult<RoomResponseDto>>(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
+    }
+    
+    const result = await this.findAll('WAITING', page, limit);
+    const availableRooms = result.rooms.filter(room => room.playerCount < room.maxPlayers);
+    
+    // Calculate total count of available rooms
+    const availableRoomsCount = await this.prisma.room.count({
+      where: {
+        status: 'WAITING',
+        isActive: true,
+        guestId: null, // No guest means available
+      },
+    });
+    
+    const paginatedResult = this.paginationService.paginate(
+      availableRooms,
+      availableRoomsCount,
+      page,
+      limit
+    );
+    
+    // Cache the result
+    await this.redisService.setObject(cacheKey, paginatedResult, this.CACHE_TTL);
+    
+    return paginatedResult;
+  }
+
+  async getUserRooms(userId: string, page = 1, limit = 10): Promise<PaginatedResult<RoomResponseDto>> {
+    const cacheKey = `${this.CACHE_PREFIX}:user:${userId}:${page}:${limit}`;
+    
+    // Try to get from cache first
+    const cachedResult = await this.redisService.getObject<PaginatedResult<RoomResponseDto>>(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
     }
 
+    // Get total count for pagination
+    const totalCount = await this.prisma.room.count({
+      where: {
+        OR: [
+          { creatorId: userId },
+          { guestId: userId },
+        ],
+        isActive: true,
+      },
+    });
+
+    // Get paginated results
     const rooms = await this.prisma.room.findMany({
       where: {
         OR: [
@@ -409,14 +453,24 @@ export class RoomsService {
         },
       },
       orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
     const formattedRooms = rooms.map(room => this.formatRoomResponse(room));
+    
+    // Create paginated result
+    const paginatedResult = this.paginationService.paginate(
+      formattedRooms,
+      totalCount,
+      page,
+      limit
+    );
 
     // Cache the result
-    await this.redisService.setObject(cacheKey, formattedRooms, this.CACHE_TTL);
+    await this.redisService.setObject(cacheKey, paginatedResult, this.CACHE_TTL);
 
-    return formattedRooms;
+    return paginatedResult;
   }
 
   private formatRoomResponse(room: any): RoomResponseDto {

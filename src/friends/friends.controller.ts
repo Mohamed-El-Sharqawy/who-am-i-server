@@ -1,10 +1,13 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
 import { FriendsService } from './friends.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SendFriendRequestDto } from './dto/send-friend-request.dto';
+import { PaginatedResult } from '../common/interfaces/pagination.interface';
 
 @Controller('friends')
 @UseGuards(JwtAuthGuard)
+@ApiTags('friends')
 export class FriendsController {
   constructor(private readonly friendsService: FriendsService) {}
 
@@ -39,17 +42,41 @@ export class FriendsController {
   }
 
   @Get()
-  async getFriends(@Request() req) {
-    return this.friendsService.getFriends(req.user.id);
+  @ApiOperation({ summary: 'Get all friends' })
+  @ApiResponse({ status: 200, description: 'Returns a paginated list of friends' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page' })
+  async getFriends(
+    @Request() req,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ): Promise<PaginatedResult<any>> {
+    return this.friendsService.getFriends(req.user.id, page ? +page : 1, limit ? +limit : 10);
   }
 
   @Get('pending')
-  async getPendingRequests(@Request() req) {
-    return this.friendsService.getPendingRequests(req.user.id);
+  @ApiOperation({ summary: 'Get pending friend requests' })
+  @ApiResponse({ status: 200, description: 'Returns a paginated list of pending friend requests' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page' })
+  async getPendingRequests(
+    @Request() req,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ): Promise<PaginatedResult<any>> {
+    return this.friendsService.getPendingRequests(req.user.id, page ? +page : 1, limit ? +limit : 10);
   }
 
   @Get('blocked')
-  async getBlockedUsers(@Request() req) {
-    return this.friendsService.getBlockedUsers(req.user.id);
+  @ApiOperation({ summary: 'Get blocked users' })
+  @ApiResponse({ status: 200, description: 'Returns a paginated list of blocked users' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page' })
+  async getBlockedUsers(
+    @Request() req,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ): Promise<PaginatedResult<any>> {
+    return this.friendsService.getBlockedUsers(req.user.id, page ? +page : 1, limit ? +limit : 10);
   }
 }
