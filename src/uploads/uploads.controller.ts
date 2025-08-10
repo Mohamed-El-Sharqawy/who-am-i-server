@@ -22,7 +22,7 @@ import {
 @ApiTags('Uploads')
 @Controller('uploads')
 @UseGuards(JwtAuthGuard)
-@ApiBearerAuth('JWT-auth')
+@ApiBearerAuth('access-token')
 export class UploadsController {
   constructor(private cloudinaryService: CloudinaryService) {}
 

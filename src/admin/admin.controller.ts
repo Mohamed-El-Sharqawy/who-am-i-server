@@ -22,7 +22,7 @@ import { PaginatedResult } from '../common/interfaces/pagination.interface';
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
-@ApiBearerAuth('JWT-auth')
+@ApiBearerAuth('access-token')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
   @Get()

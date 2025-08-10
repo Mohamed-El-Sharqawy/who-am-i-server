@@ -86,12 +86,12 @@ export class RoomsService {
     status?: string,
     page = 1,
     limit = 20,
-  ): Promise<{ rooms: RoomResponseDto[]; total: number; pages: number }> {
+  ): Promise<PaginatedResult<RoomResponseDto>> {
     const skip = (page - 1) * limit;
     const cacheKey = `${this.CACHE_PREFIX}:list:${status || 'all'}:${page}:${limit}`;
     
     // Try to get from cache first
-    const cachedResult = await this.redisService.getObject<{ rooms: RoomResponseDto[]; total: number; pages: number }>(cacheKey);
+    const cachedResult = await this.redisService.getObject<PaginatedResult<RoomResponseDto>>(cacheKey);
     if (cachedResult) {
       return cachedResult;
     }
@@ -130,9 +130,15 @@ export class RoomsService {
     const formattedRooms = rooms.map(room => this.formatRoomResponse(room));
 
     const result = {
-      rooms: formattedRooms,
-      total,
-      pages: Math.ceil(total / limit),
+      data: formattedRooms,
+      meta: {
+        currentPage: page,
+        pagesCount: Math.ceil(total / limit),
+        totalCount: total,
+        limit,
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      }
     };
 
     // Cache the result
@@ -383,7 +389,7 @@ export class RoomsService {
     }
     
     const result = await this.findAll('WAITING', page, limit);
-    const availableRooms = result.rooms.filter(room => room.playerCount < room.maxPlayers);
+    const availableRooms = result.data.filter(room => room.playerCount < room.maxPlayers);
     
     // Calculate total count of available rooms
     const availableRoomsCount = await this.prisma.room.count({
@@ -394,7 +400,7 @@ export class RoomsService {
       },
     });
     
-    const paginatedResult = this.paginationService.paginate(
+    const paginatedResult = this.paginationService.paginate<RoomResponseDto>(
       availableRooms,
       availableRoomsCount,
       page,

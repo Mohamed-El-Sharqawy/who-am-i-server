@@ -18,6 +18,7 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiQuery,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import { RoomsService } from './rooms.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -34,7 +35,7 @@ export class RoomsController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Create a new room' })
   @ApiResponse({
     status: 201,
@@ -72,12 +73,35 @@ export class RoomsController {
   @ApiResponse({
     status: 200,
     description: 'Rooms retrieved successfully',
+    schema: {
+      allOf: [
+        {
+          properties: {
+            data: {
+              type: 'array',
+              items: { $ref: getSchemaPath(RoomResponseDto) },
+            },
+            meta: {
+              type: 'object',
+              properties: {
+                currentPage: { type: 'number' },
+                pagesCount: { type: 'number' },
+                totalCount: { type: 'number' },
+                limit: { type: 'number' },
+                hasNext: { type: 'boolean' },
+                hasPrev: { type: 'boolean' }
+              }
+            }
+          },
+        },
+      ],
+    },
   })
   findAll(
     @Query('status') status?: string,
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
-  ) {
+  ): Promise<PaginatedResult<RoomResponseDto>> {
     return this.roomsService.findAll(status, page, limit);
   }
 
@@ -109,7 +133,7 @@ export class RoomsController {
 
   @Get('my-rooms')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get current user rooms with pagination' })
   @ApiQuery({
     name: 'page',
@@ -154,7 +178,7 @@ export class RoomsController {
 
   @Post(':id/join')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Join a room' })
   @ApiParam({ name: 'id', description: 'Room ID' })
   @ApiResponse({
@@ -180,7 +204,7 @@ export class RoomsController {
 
   @Post(':id/start')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Start the game in a room (creator only)' })
   @ApiParam({ name: 'id', description: 'Room ID' })
   @ApiResponse({
@@ -206,7 +230,7 @@ export class RoomsController {
 
   @Delete(':id/leave')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Leave a room' })
   @ApiParam({ name: 'id', description: 'Room ID' })
   @ApiResponse({
